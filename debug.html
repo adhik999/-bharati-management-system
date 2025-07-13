@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - BVIT System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .response {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background-color: #fef2f2;
+            color: #dc2626;
+        }
+        .success {
+            background-color: #f0fdf4;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 BVIT System Debug Tool</h1>
+    
+    <div class="test-section">
+        <h3>1. Server Status Check</h3>
+        <button onclick="checkServer()">Check Server</button>
+        <div id="serverStatus" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Login API Test</h3>
+        <button onclick="testLogin()">Test Login API</button>
+        <div id="loginTest" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. All API Endpoints Test</h3>
+        <button onclick="testAllEndpoints()">Test All APIs</button>
+        <div id="allEndpoints" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Browser Console Check</h3>
+        <p>Open browser developer tools (F12) and check the Console tab for any errors.</p>
+        <button onclick="checkConsole()">Log Test Message</button>
+        <div id="consoleCheck" class="response"></div>
+    </div>
+
+    <script>
+        function log(message, elementId, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}\n`;
+            
+            if (isError) {
+                element.className = 'response error';
+            } else {
+                element.className = 'response success';
+            }
+            
+            element.textContent += logMessage;
+        }
+
+        async function checkServer() {
+            const element = document.getElementById('serverStatus');
+            element.textContent = '';
+            
+            try {
+                log('Testing server connection...', 'serverStatus');
+                const response = await fetch('/');
+                
+                log(`Server Status: ${response.status}`, 'serverStatus');
+                log(`Content-Type: ${response.headers.get('content-type')}`, 'serverStatus');
+                
+                if (response.ok) {
+                    log('✅ Server is running correctly!', 'serverStatus');
+                } else {
+                    log('❌ Server returned an error status', 'serverStatus', true);
+                }
+            } catch (error) {
+                log(`❌ Server connection failed: ${error.message}`, 'serverStatus', true);
+            }
+        }
+
+        async function testLogin() {
+            const element = document.getElementById('loginTest');
+            element.textContent = '';
+            
+            try {
+                log('Testing login API...', 'loginTest');
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123',
+                        role: 'admin'
+                    })
+                });
+
+                log(`Response Status: ${response.status}`, 'loginTest');
+                log(`Content-Type: ${response.headers.get('content-type')}`, 'loginTest');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Error Response: ${errorText}`, 'loginTest', true);
+                    return;
+                }
+
+                const data = await response.json();
+                log('✅ Login API working correctly!', 'loginTest');
+                log(`Token received: ${data.token ? 'Yes' : 'No'}`, 'loginTest');
+                
+            } catch (error) {
+                log(`❌ Login API failed: ${error.message}`, 'loginTest', true);
+            }
+        }
+
+        async function testAllEndpoints() {
+            const element = document.getElementById('allEndpoints');
+            element.textContent = '';
+            
+            const endpoints = [
+                '/api/auth/verify',
+                '/api/admin/users',
+                '/api/admin/teachers',
+                '/api/teacher/students',
+                '/api/attendance/records'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    log(`Testing ${endpoint}...`, 'allEndpoints');
+                    const response = await fetch(endpoint);
+                    
+                    if (response.status === 401) {
+                        log(`✅ ${endpoint} - Requires authentication (expected)`, 'allEndpoints');
+                    } else if (response.status === 404) {
+                        log(`⚠️ ${endpoint} - Not found`, 'allEndpoints');
+                    } else {
+                        log(`✅ ${endpoint} - Status: ${response.status}`, 'allEndpoints');
+                    }
+                } catch (error) {
+                    log(`❌ ${endpoint} - Error: ${error.message}`, 'allEndpoints', true);
+                }
+            }
+        }
+
+        function checkConsole() {
+            const element = document.getElementById('consoleCheck');
+            element.textContent = '';
+            
+            log('Testing console logging...', 'consoleCheck');
+            console.log('Debug: Console is working correctly');
+            console.error('Debug: Error logging is working');
+            log('✅ Check browser console (F12) for test messages', 'consoleCheck');
+        }
+
+        // Auto-run server check on page load
+        window.addEventListener('load', () => {
+            setTimeout(checkServer, 1000);
+        });
+    </script>
+</body>
+</html> 
